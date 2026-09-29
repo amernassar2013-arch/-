@@ -218,7 +218,7 @@ const RAW_PLACES = [
     },
   },
   {
-    id: 'dead-sea', stars: 4, lat: 31.559, lng: 35.4732,
+    id: 'dead-sea', stars: 5, lat: 31.559, lng: 35.4732,
     tags: ['nature', 'sea'], hours: 4, costJod: 25, distanceKm: 60,
     name: { ar: 'البحر الميت', en: 'Dead Sea', it: 'Mar Morto' },
     description: {
@@ -426,7 +426,7 @@ const RAW_PLACES = [
     },
   },
   {
-    id: 'roman-theatre', stars: 1, lat: 31.9516, lng: 35.9394,
+    id: 'roman-theatre', stars: 3, lat: 31.9516, lng: 35.9394,
     tags: ['history'], hours: 1, costJod: null, distanceKm: 0,
     name: { ar: 'المدرج الروماني', en: 'Roman Theatre, Amman', it: 'Teatro Romano di Amman' },
     description: {
