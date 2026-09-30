@@ -18,6 +18,7 @@ HTML, CSS, JavaScript, Firebase, Node.js (Express)
 
 ## تشغيل المشروع | Run Locally
 1. `git clone https://github.com/amernassar2013-arch/-Discover-Jordan-Competition.git`
+2. 3. لتفعيل مخطط الذكاء الاصطناعي: ضع ملف `config.js` (المرسل مع التسليم) داخل `advnace/js`. بدونه يعمل المخطط المحلي تلقائياً.
 3. شغّل الواجهة بـ Live Server (لا تفتح الملف بالضغط المزدوج)
 
 ## الفريق | Team
