@@ -74,6 +74,10 @@ const TRANSLATIONS = {
     l2: 'حساب المسافات',
     l3: 'تجهيز خطتك اليومية',
     cu: 'السعر غير محدد',
+    markFound: 'اكتشفت هالمكان',
+    foundDone: 'تم اكتشافه',
+        discCount: 'تم اكتشاف',
+    ofTotal: 'من',
   },
   en: {
     home: 'Home',
@@ -131,6 +135,10 @@ const TRANSLATIONS = {
     l2: 'Calculating distances',
     l3: 'Preparing your daily plan',
     cu: 'Price not set',
+        markFound: 'I discovered this place',
+    foundDone: 'Discovered',
+        discCount: 'Discovered',
+    ofTotal: 'of',
   },
   it: {
     home: 'Home',
@@ -188,6 +196,10 @@ const TRANSLATIONS = {
     l2: 'Calcolo delle distanze',
     l3: 'Preparazione del piano giornaliero',
     cu: 'Prezzo non definito',
+        markFound: 'Ho scoperto questo posto',
+    foundDone: 'Scoperto',
+        discCount: 'Scoperti',
+    ofTotal: 'su',
   },
 };
 
@@ -743,7 +755,7 @@ function renderTrip(container, days) {
 
 // Explore: zones from 5 stars down to 1
 function initExplore() {
-  $('#zones').innerHTML = [5, 4, 3, 2, 1]
+  const zones = [5, 4, 3, 2, 1]
     .map((stars) => {
       const places = PLACES.filter((p) => p.stars === stars);
       if (!places.length) return '';
@@ -755,8 +767,9 @@ function initExplore() {
         </section>`;
     })
     .join('');
-}
 
+  $('#zones').innerHTML = `<p class="disc-count">🧭 ${discoveredCountText()}</p>` + zones;
+}
 // Place: photos, quick specs, intro, maps button
 function initPlace() {
   const id = new URLSearchParams(location.search).get('id');
@@ -774,7 +787,18 @@ function initPlace() {
     </div>
     <p>${place.description}</p>
     <br>
-    <a class="btn gold" target=_blank rel=noopener href="${mapsUrl(place)}">📍 ${t('maps')}</a>`;
+    <a class="btn gold" target=_blank rel=noopener href="${mapsUrl(place)}">📍 ${t('maps')}</a>
+        <button class="btn gold" id="discBtn"></button>`;;      const btn = $('#discBtn');
+  const paint = () => {
+    btn.textContent = isDiscovered(place.id)
+      ? '✅ ' + t('foundDone')
+      : '🧭 ' + t('markFound');
+  };
+  paint();
+  btn.onclick = () => {
+    toggleDiscovered(place.id);
+    paint();
+  };
 }
 
 // Planner: interests + days -> loading checklist -> trip view
@@ -946,6 +970,42 @@ function initHome() {
     </div>`;
 }
 
+// ===== اكتشفت هالمكان =====
+function getDiscovered() {
+  try {
+    return JSON.parse(localStorage.getItem('discovered')) || [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function isDiscovered(id) {
+  return getDiscovered().includes(String(id));
+}
+
+function toggleDiscovered(id) {
+  id = String(id);
+  let list = getDiscovered();
+  if (list.includes(id)) {
+    list = list.filter(x => x !== id);
+  } else {
+    list.push(id);
+  }
+  localStorage.setItem('discovered', JSON.stringify(list));
+  return list.includes(id);
+}
+function discoveredCountText() {
+  const done = getDiscovered().filter((id) => findPlace(id)).length;
+  return `${t('discCount')} ${done} ${t('ofTotal')} ${PLACES.length}`;
+}
+// Refresh the explore page when discovered places change
+window.addEventListener('pageshow', (e) => {
+  if (e.persisted && currentPage === 'explore') initExplore();
+});
+
+window.addEventListener('storage', () => {
+  if (currentPage === 'explore') initExplore();
+});
 // ---------- Start ----------
 const PAGE_INITIALIZERS = {
   home: initHome,

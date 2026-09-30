@@ -493,3 +493,15 @@ footer a {
     scroll-behavior: auto !important;
   }
 }
+/* ---------- Discovered counter ---------- */
+.disc-count {
+  display: inline-block;
+  margin: 0 0 1.5rem;
+  padding: 0.6rem 1.2rem;
+  background: var(--w);
+  color: var(--g);
+  border: 2px solid var(--s);
+  border-radius: 999px;
+  font-weight: 700;
+  font-family: inherit;
+}
