@@ -780,6 +780,9 @@ async function aiPlan(interests, numberOfDays, city) {
   const key = window.AI_KEY;
   if (!key) return null;
 
+  const l = document.documentElement.lang;
+  const langName = l === 'en' ? 'English' : l === 'it' ? 'Italian' : 'Arabic';
+
   const catalog = PLACES.map((p, i) => ({
     i, name: p.name, region: p.region, tags: p.tags, stars: p.stars
   }));
@@ -791,7 +794,8 @@ async function aiPlan(interests, numberOfDays, city) {
     `Starting city: ${city}\n\n` +
     `Plan the trip: up to 3 places per day, group geographically close places (same region) in the same day, ` +
     `prefer places matching the interests, use each place at most once. ` +
-    `Reply with ONLY JSON like {"days":[[3,7,12],[1,5]]} with exactly ${numberOfDays} days. Numbers are the "i" values.`;
+    `Reply with ONLY JSON like {"days":[[3,7,12],[1,5]],"note":"..."} with exactly ${numberOfDays} days. Numbers are the "i" values. ` +
+    `"note" is 2 to 3 short sentences explaining why you arranged the days this way, plus one practical tip for the tourist. Write the note in ${langName}.`;
 
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 15000);
@@ -813,7 +817,8 @@ async function aiPlan(interests, numberOfDays, city) {
         messages: [{ role: 'user', content: prompt }]
       })
     });
-       if (!r.ok) {
+
+    if (!r.ok) {
       console.warn('AI error', r.status, await r.text());
       return null;
     }
@@ -830,7 +835,7 @@ async function aiPlan(interests, numberOfDays, city) {
         .map((i) => PLACES[i]))
       .filter((day) => day.length);
 
-    return days.length ? days : null;
+    return days.length ? { days, note: String(parsed.note || '') } : null;
   } catch (e) {
     console.warn('AI planner failed, using local planner', e);
     return null;
@@ -856,19 +861,18 @@ function initPlanner() {
     event.target.classList.toggle('on');
   };
 
-  $('#go').onclick = async () => {
+    $('#go').onclick = async () => {
     if (!selected.size) return alert(t('nf'));
 
     const numberOfDays = Number($('#nd').value) || 1;
 
-    const [, aiDays] = await Promise.all([
+    const [, ai] = await Promise.all([
       showLoadingOverlay(),
       aiPlan([...selected], numberOfDays, $('#ct').value)
     ]);
 
-    let days = aiDays;
-    
-      console.log(aiDays ? 'AI plan used' : 'Local plan used');
+    let days = ai ? ai.days : null;
+    console.log(ai ? 'AI plan used' : 'Local plan used');
 
     if (!days) {
       const matching = PLACES
@@ -883,6 +887,12 @@ function initPlanner() {
     }
 
     renderTrip($('#res'), days);
+
+    if (ai && ai.note) {
+      const why = document.querySelector('#res .why p');
+      if (why) why.textContent = ai.note;
+    }
+
     $('#res').scrollIntoView({ behavior: 'smooth' });
   };
 }
