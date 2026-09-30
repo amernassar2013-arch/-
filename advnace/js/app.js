@@ -776,6 +776,68 @@ function initPlace() {
 }
 
 // Planner: interests + days -> loading checklist -> trip view
+async function aiPlan(interests, numberOfDays, city) {
+  const key = window.AI_KEY;
+  if (!key) return null;
+
+  const catalog = PLACES.map((p, i) => ({
+    i, name: p.name, region: p.region, tags: p.tags, stars: p.stars
+  }));
+
+  const prompt =
+    `Places (JSON): ${JSON.stringify(catalog)}\n` +
+    `Tourist interests: ${interests.join(', ')}\n` +
+    `Number of days: ${numberOfDays}\n` +
+    `Starting city: ${city}\n\n` +
+    `Plan the trip: up to 3 places per day, group geographically close places (same region) in the same day, ` +
+    `prefer places matching the interests, use each place at most once. ` +
+    `Reply with ONLY JSON like {"days":[[3,7,12],[1,5]]} with exactly ${numberOfDays} days. Numbers are the "i" values.`;
+
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 15000);
+
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      signal: ctrl.signal,
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1000,
+        system: 'You are a Jordan trip planner. Reply with valid JSON only, no other text.',
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+       if (!r.ok) {
+      console.warn('AI error', r.status, await r.text());
+      return null;
+    }
+
+    const data = await r.json();
+    const text = data.content.map((c) => c.text || '').join('');
+    const parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
+
+    const used = new Set();
+    const days = parsed.days
+      .slice(0, numberOfDays)
+      .map((day) => day
+        .filter((i) => PLACES[i] && !used.has(i) && used.add(i))
+        .map((i) => PLACES[i]))
+      .filter((day) => day.length);
+
+    return days.length ? days : null;
+  } catch (e) {
+    console.warn('AI planner failed, using local planner', e);
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 function initPlanner() {
   const INTERESTS = ['history', 'nature', 'desert', 'sea', 'food', 'adventure'];
   const PLACES_PER_DAY = 3;
@@ -799,22 +861,29 @@ function initPlanner() {
 
     const numberOfDays = Number($('#nd').value) || 1;
 
-    await showLoadingOverlay();
+    const [, aiDays] = await Promise.all([
+      showLoadingOverlay(),
+      aiPlan([...selected], numberOfDays, $('#ct').value)
+    ]);
 
-    const matching = PLACES
-      .filter((place) => place.tags.some((tag) => selected.has(tag)))
-      .sort((a, b) => b.stars - a.stars);
+    let days = aiDays;
+    
+      console.log(aiDays ? 'AI plan used' : 'Local plan used');
 
-    const days = [];
-    for (let d = 0; d < numberOfDays; d++) {
-      const dayPlaces = matching.slice(d * PLACES_PER_DAY, (d + 1) * PLACES_PER_DAY);
-      if (dayPlaces.length) days.push(dayPlaces);
+    if (!days) {
+      const matching = PLACES
+        .filter((place) => place.tags.some((tag) => selected.has(tag)))
+        .sort((a, b) => b.stars - a.stars);
+
+      days = [];
+      for (let d = 0; d < numberOfDays; d++) {
+        const dayPlaces = matching.slice(d * PLACES_PER_DAY, (d + 1) * PLACES_PER_DAY);
+        if (dayPlaces.length) days.push(dayPlaces);
+      }
     }
 
     renderTrip($('#res'), days);
     $('#res').scrollIntoView({ behavior: 'smooth' });
-
-    // TODO Firebase: save { interests: [...selected], days: numberOfDays, city: $('#ct').value } to Firestore here
   };
 }
 
