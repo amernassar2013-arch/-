@@ -41,7 +41,7 @@ const TRANSLATIONS = {
     es: 'الأماكن مقسمة حسب تفرّدها، من 5 نجوم إلى نجمة واحدة.',
     maps: 'افتح في الخرائط',
     time: 'الوقت المقترح',
-    cost: 'التكلفة',
+    cost: 'سعر تذكرة الدخول',
     dist: 'من عمّان',
     hr: 'ساعات',
     jod: 'د.أ',
@@ -73,6 +73,7 @@ const TRANSLATIONS = {
     l1: 'تحليل اهتماماتك',
     l2: 'حساب المسافات',
     l3: 'تجهيز خطتك اليومية',
+    cu: 'السعر غير محدد',
   },
   en: {
     home: 'Home',
@@ -97,7 +98,7 @@ const TRANSLATIONS = {
     es: 'Places grouped by uniqueness, from 5 stars down to 1.',
     maps: 'Open in Maps',
     time: 'Suggested time',
-    cost: 'Cost',
+    cost: 'Entry ticket',
     dist: 'From Amman',
     hr: 'hours',
     jod: 'JOD',
@@ -129,6 +130,7 @@ const TRANSLATIONS = {
     l1: 'Analyzing your interests',
     l2: 'Calculating distances',
     l3: 'Preparing your daily plan',
+    cu: 'Price not set',
   },
   it: {
     home: 'Home',
@@ -153,7 +155,7 @@ const TRANSLATIONS = {
     es: 'Luoghi raggruppati per unicità, da 5 stelle a 1.',
     maps: 'Apri in Maps',
     time: 'Tempo consigliato',
-    cost: 'Costo',
+    cost: 'Prezzo del biglietto',
     dist: 'Da Amman',
     hr: 'ore',
     jod: 'JOD',
@@ -185,6 +187,7 @@ const TRANSLATIONS = {
     l1: 'Analisi dei tuoi interessi',
     l2: 'Calcolo delle distanze',
     l3: 'Preparazione del piano giornaliero',
+    cu: 'Prezzo non definito',
   },
 };
 
@@ -211,7 +214,7 @@ const RAW_PLACES = [
   },
   {
     id: 'wadi-rum', stars: 5, lat: 29.5766, lng: 35.42,
-    tags: ['desert', 'adventure'], hours: 6, costJod: 35, distanceKm: 320,
+    tags: ['desert', 'adventure'], hours: 6, costJod: 75, distanceKm: 320,
     name: { ar: 'وادي رم', en: 'Wadi Rum', it: 'Wadi Rum' },
     description: {
       ar: 'صحراء الجبال الحمراء والرمال، اقضِ ليلة في مخيم بدوي.',
@@ -539,10 +542,9 @@ const PLACES = RAW_PLACES.map((place) => ({
 const findPlace = (id) => PLACES.find((place) => place.id === id);
 
 // costJod can be null (unknown) - hide it instead of showing "null JOD"
-const costSpecHtml = (place) =>
-  place.costJod == null
-    ? ''
-    : `<span>${t('cost')}<b>${place.costJod} ${t('jod')}</b></span>`;
+function costSpecHtml(place) {
+  return `<span>${t('cost')}<b>${costText(place)}</b></span>`;
+}
 
 const detailsLine = (place) =>
   [
@@ -842,6 +844,13 @@ async function aiPlan(interests, numberOfDays, city) {
   } finally {
     clearTimeout(timer);
   }
+}
+function costText(place) {
+  const v = place.costJod;
+  if (v === undefined || v === null || v === '' || v === 'unknown' || Number.isNaN(Number(v))) {
+    return t('cu');
+  }
+  return `${Number(v)} ${t('jod')}`;
 }
 function initPlanner() {
   const INTERESTS = ['history', 'nature', 'desert', 'sea', 'food', 'adventure'];
